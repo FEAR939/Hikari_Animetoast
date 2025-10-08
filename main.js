@@ -128,7 +128,7 @@ export async function getProvider(title) {
 
   if (!search_results.length) return;
 
-  const seriesUrl = search_results[bestMatch.index].getAttribute("href")!;
+  const seriesUrl = search_results[bestMatch.index].getAttribute("href");
 
   console.debug("Found URL for series: ", seriesUrl);
 
