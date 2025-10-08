@@ -1,4 +1,3 @@
-import { cache } from "../../services/cache";
 /*
 interface Provider {
   label: string;
@@ -54,215 +53,221 @@ const replacements = [
   },
 ];
 
-function sanitizeTitle(title) {
-  let tempString = title;
-  replacements.map((replacement) => {
-    if (!tempString.includes("Season"))
-      tempString = tempString.replace(/\bPart\b/g, "");
-
-    return (tempString = tempString.replaceAll(
-      replacement.from,
-      replacement.to,
-    ));
-  });
-
-  return tempString.trim();
-}
-
-export async function getProvider(title) {
-  if (
-    cache.get("extension.animetoast") !== null &&
-    JSON.parse(cache.get("extension.animetoast")).anime === title.romaji
-  ) {
-    return JSON.parse(cache.get("extension.animetoast"));
+export class Extension {
+  constructor(cache) {
+    this.cache = cache;
   }
-
-  const sanitized = sanitizeTitle(title.romaji);
-
-  const url = `https://animetoast.cc/?s=${sanitized} Ger Dub`;
-  const seasonNumber =
-    sanitized.match(/(?<!^)(?<!\d)\d{1,2}/)?.[0] || undefined;
-  const lang = "Ger Dub";
-
-  const res = await fetch(url);
-
-  if (!res.ok) return;
-
-  const data = await res.text();
-
-  const search_html = new DOMParser().parseFromString(data, "text/html");
-
-  let search_results = Array.from(
-    search_html.querySelectorAll(".blog-item .item-head h3 a"),
-  );
-
-  if (seasonNumber) {
-    search_results = search_results.filter((result) => {
-      const sanitized = sanitizeTitle(result.textContent);
-
-      return sanitized.includes(seasonNumber) && sanitized.includes(lang);
+  
+  sanitizeTitle(title) {
+    let tempString = title;
+    replacements.map((replacement) => {
+      if (!tempString.includes("Season"))
+        tempString = tempString.replace(/\bPart\b/g, "");
+  
+      return (tempString = tempString.replaceAll(
+        replacement.from,
+        replacement.to,
+      ));
     });
-  } else if (!seasonNumber) {
-    search_results = search_results.filter((result) => {
-      const sanitized = sanitizeTitle(result.textContent);
-
-      return (
-        !sanitized.match(/(?<!^)(?<!\d)\d{1,2}/)?.[0] &&
-        sanitized.includes(lang)
-      );
-    });
+  
+    return tempString.trim();
   }
-
-  const simularities = search_results.map((result, i) => {
-    const sim = levenshtein(title.romaji, result.textContent);
-    // console.log(`result: ${result.textContent}, similarity: ${sim}`);
-
-    return { similarity: sim, index: i };
-  });
-
-  if (!simularities.length) return;
-
-  const bestMatch = simularities.reduce((prev, curr) => {
-    return prev.similarity < curr.similarity ? prev : curr;
-  });
-
-  if (!search_results.length) return;
-
-  const seriesUrl = search_results[bestMatch.index].getAttribute("href");
-
-  console.debug("Found URL for series: ", seriesUrl);
-
-  const series_res = await fetch(seriesUrl);
-
-  if (!series_res.ok) return;
-
-  const series_data = await series_res.text();
-
-  const series_html = new DOMParser().parseFromString(series_data, "text/html");
-
-  const hosters = Array.from(
-    series_html.querySelectorAll(".nav-tabs li"),
-  )
-    .filter((provider) => provider.querySelector("a"))
-    .map((provider) => {
-      const element = provider.querySelector("a");
-      const label = element.textContent.trim() || "";
-      const tab = element.getAttribute("href");
-
-      const eps = Array.from(
-        series_html.querySelectorAll(`.tab-content ${tab} a`),
-      ).map((episode) => ({
-        label: episode?.textContent?.trim() || "",
-        url: episode?.getAttribute("href"),
-        isBundle: (episode?.textContent || "").includes("-"),
-      }));
-
-      return { label, tab, episodes: eps };
-    });
-
-  const source = {
-    label: "AnimeToast",
-    anime: title.romaji,
-    url: "animetoast.cc",
-    icon:
-      series_html
-        .querySelector('head link[rel="icon"]')
-        .getAttribute("href") || "",
-    hosters,
-  };
-
-  cache.set("extension.animetoast", JSON.stringify(source), 60 * 60 * 1000); // 1 hour cache lifetime
-
-  return source;
-}
-
-export async function getEpisodeLink(url) {
-  const response = await fetch(url);
-  const data = await response.text();
-
-  if (!data) return;
-
-  const html = new DOMParser().parseFromString(data, "text/html");
-
-  const link =
-    html.querySelector("#player-embed a").getAttribute("href") || "";
-
-  return link;
-}
-
-export async function getBundle(url) {
-  let response = await fetch(url);
-  let data = await response.text();
-
-  if (!data) return;
-
-  let html = new DOMParser().parseFromString(data, "text/html");
-
-  const link =
-    html.querySelector("#player-embed a").getAttribute("href") || "";
-
-  response = await fetch(link);
-  data = await response.text();
-
-  if (!data) return;
-
-  html = new DOMParser().parseFromString(data, "text/html");
-
-  let episodes = Array.from(
-    html.querySelectorAll(`.tab-content .active a`),
-  ).map((episode) => {
-    const label = episode.textContent.trim() || "";
-    const url = episode.getAttribute("href");
-    return { label, url };
-  });
-
-  return episodes;
-}
-
-export async function getEpisode(source_hoster, episode) {
-  let sourceEpisode = false;
-  let bundleEpisodeNumber = -1;
-
-  if (source_hoster.episodes[0].isBundle) {
-    console.log("Episodes are bundled");
-    sourceEpisode = source_hoster.episodes.find((sourceEpisode) => {
-      const match = sourceEpisode.label.match(/E?(\d+)-E?(\d+)/);
-
-      const [bundleStart, bundleEnd] = match
-        ? [parseInt(match[1]), parseInt(match[2])]
-        : [0, 0];
-
-      const episodeNumber = parseInt(episode.episode);
-
-      bundleEpisodeNumber = episodeNumber - bundleStart + 1;
-
-      return bundleStart <= episodeNumber && bundleEnd >= episodeNumber;
-    });
-  } else {
-    sourceEpisode = source_hoster.episodes.find(
-      (sourceEpisode) =>
-        sourceEpisode.label.replace("Ep. ", "") == episode.episode,
+  
+  async getProvider(title) {
+    if (
+      this.cache.get("extension.animetoast") !== null &&
+      JSON.parse(this.cache.get("extension.animetoast")).anime === title.romaji
+    ) {
+      return JSON.parse(this.cache.get("extension.animetoast"));
+    }
+  
+    const sanitized = sanitizeTitle(title.romaji);
+  
+    const url = `https://animetoast.cc/?s=${sanitized} Ger Dub`;
+    const seasonNumber =
+      sanitized.match(/(?<!^)(?<!\d)\d{1,2}/)?.[0] || undefined;
+    const lang = "Ger Dub";
+  
+    const res = await fetch(url);
+  
+    if (!res.ok) return;
+  
+    const data = await res.text();
+  
+    const search_html = new DOMParser().parseFromString(data, "text/html");
+  
+    let search_results = Array.from(
+      search_html.querySelectorAll(".blog-item .item-head h3 a"),
     );
+  
+    if (seasonNumber) {
+      search_results = search_results.filter((result) => {
+        const sanitized = sanitizeTitle(result.textContent);
+  
+        return sanitized.includes(seasonNumber) && sanitized.includes(lang);
+      });
+    } else if (!seasonNumber) {
+      search_results = search_results.filter((result) => {
+        const sanitized = sanitizeTitle(result.textContent);
+  
+        return (
+          !sanitized.match(/(?<!^)(?<!\d)\d{1,2}/)?.[0] &&
+          sanitized.includes(lang)
+        );
+      });
+    }
+  
+    const simularities = search_results.map((result, i) => {
+      const sim = levenshtein(title.romaji, result.textContent);
+      // console.log(`result: ${result.textContent}, similarity: ${sim}`);
+  
+      return { similarity: sim, index: i };
+    });
+  
+    if (!simularities.length) return;
+  
+    const bestMatch = simularities.reduce((prev, curr) => {
+      return prev.similarity < curr.similarity ? prev : curr;
+    });
+  
+    if (!search_results.length) return;
+  
+    const seriesUrl = search_results[bestMatch.index].getAttribute("href");
+  
+    console.debug("Found URL for series: ", seriesUrl);
+  
+    const series_res = await fetch(seriesUrl);
+  
+    if (!series_res.ok) return;
+  
+    const series_data = await series_res.text();
+  
+    const series_html = new DOMParser().parseFromString(series_data, "text/html");
+  
+    const hosters = Array.from(
+      series_html.querySelectorAll(".nav-tabs li"),
+    )
+      .filter((provider) => provider.querySelector("a"))
+      .map((provider) => {
+        const element = provider.querySelector("a");
+        const label = element.textContent.trim() || "";
+        const tab = element.getAttribute("href");
+  
+        const eps = Array.from(
+          series_html.querySelectorAll(`.tab-content ${tab} a`),
+        ).map((episode) => ({
+          label: episode?.textContent?.trim() || "",
+          url: episode?.getAttribute("href"),
+          isBundle: (episode?.textContent || "").includes("-"),
+        }));
+  
+        return { label, tab, episodes: eps };
+      });
+  
+    const source = {
+      label: "AnimeToast",
+      anime: title.romaji,
+      url: "animetoast.cc",
+      icon:
+        series_html
+          .querySelector('head link[rel="icon"]')
+          .getAttribute("href") || "",
+      hosters,
+    };
+  
+    this.cache.set("extension.animetoast", JSON.stringify(source), 60 * 60 * 1000); // 1 hour cache lifetime
+  
+    return source;
   }
-
-  if (!sourceEpisode) {
-    console.log("Episode not found");
-    return;
+  
+  async getEpisodeLink(url) {
+    const response = await fetch(url);
+    const data = await response.text();
+  
+    if (!data) return;
+  
+    const html = new DOMParser().parseFromString(data, "text/html");
+  
+    const link =
+      html.querySelector("#player-embed a").getAttribute("href") || "";
+  
+    return link;
   }
-
-  if (bundleEpisodeNumber === -1) {
-    const streamlink = await getEpisodeLink(sourceEpisode.url);
-
+  
+  async getBundle(url) {
+    let response = await fetch(url);
+    let data = await response.text();
+  
+    if (!data) return;
+  
+    let html = new DOMParser().parseFromString(data, "text/html");
+  
+    const link =
+      html.querySelector("#player-embed a").getAttribute("href") || "";
+  
+    response = await fetch(link);
+    data = await response.text();
+  
+    if (!data) return;
+  
+    html = new DOMParser().parseFromString(data, "text/html");
+  
+    let episodes = Array.from(
+      html.querySelectorAll(`.tab-content .active a`),
+    ).map((episode) => {
+      const label = episode.textContent.trim() || "";
+      const url = episode.getAttribute("href");
+      return { label, url };
+    });
+  
+    return episodes;
+  }
+  
+  async getEpisode(source_hoster, episode) {
+    let sourceEpisode = false;
+    let bundleEpisodeNumber = -1;
+  
+    if (source_hoster.episodes[0].isBundle) {
+      console.log("Episodes are bundled");
+      sourceEpisode = source_hoster.episodes.find((sourceEpisode) => {
+        const match = sourceEpisode.label.match(/E?(\d+)-E?(\d+)/);
+  
+        const [bundleStart, bundleEnd] = match
+          ? [parseInt(match[1]), parseInt(match[2])]
+          : [0, 0];
+  
+        const episodeNumber = parseInt(episode.episode);
+  
+        bundleEpisodeNumber = episodeNumber - bundleStart + 1;
+  
+        return bundleStart <= episodeNumber && bundleEnd >= episodeNumber;
+      });
+    } else {
+      sourceEpisode = source_hoster.episodes.find(
+        (sourceEpisode) =>
+          sourceEpisode.label.replace("Ep. ", "") == episode.episode,
+      );
+    }
+  
+    if (!sourceEpisode) {
+      console.log("Episode not found");
+      return;
+    }
+  
+    if (bundleEpisodeNumber === -1) {
+      const streamlink = await getEpisodeLink(sourceEpisode.url);
+  
+      return streamlink;
+    }
+  
+    const bundle = await getBundle(sourceEpisode.url);
+  
+    const bundleEpisode = bundle[bundleEpisodeNumber - 1];
+  
+    const streamlink = await getEpisodeLink(bundleEpisode.url);
+  
     return streamlink;
   }
-
-  const bundle = await getBundle(sourceEpisode.url);
-
-  const bundleEpisode = bundle[bundleEpisodeNumber - 1];
-
-  const streamlink = await getEpisodeLink(bundleEpisode.url);
-
-  return streamlink;
 }
 
 function levenshtein(a, b) {
