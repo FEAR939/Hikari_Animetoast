@@ -212,7 +212,7 @@ export async function getBundle(url) {
     html.querySelectorAll(`.tab-content .active a`),
   ).map((episode) => {
     const label = episode.textContent.trim() || "";
-    const url = episode.getAttribute("href")!;
+    const url = episode.getAttribute("href");
     return { label, url };
   });
 
@@ -258,7 +258,7 @@ export async function getEpisode(source_hoster, episode) {
 
   const bundle = await getBundle(sourceEpisode.url);
 
-  const bundleEpisode = bundle![bundleEpisodeNumber - 1];
+  const bundleEpisode = bundle[bundleEpisodeNumber - 1];
 
   const streamlink = await getEpisodeLink(bundleEpisode.url);
 
@@ -281,21 +281,21 @@ function levenshtein(a, b) {
   }
   const firstRow = matrix[0];
   for (let j = 1; j <= an; ++j) {
-    firstRow![j] = j;
+    firstRow[j] = j;
   }
   for (let i = 1; i <= bn; ++i) {
     for (let j = 1; j <= an; ++j) {
       if (b.charAt(i - 1) === a.charAt(j - 1)) {
-        matrix[i]![j] = matrix[i - 1]![j - 1]!;
+        matrix[i][j] = matrix[i - 1][j - 1];
       } else {
-        matrix[i]![j] =
+        matrix[i][j] =
           Math.min(
-            matrix[i - 1]![j - 1]!, // substitution
-            matrix[i]![j - 1]!, // insertion
-            matrix[i - 1]![j]!, // deletion
+            matrix[i - 1][j - 1], // substitution
+            matrix[i][j - 1], // insertion
+            matrix[i - 1][j], // deletion
           ) + 1;
       }
     }
   }
-  return matrix[bn]![an]!;
+  return matrix[bn][an];
 }
