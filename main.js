@@ -1,5 +1,5 @@
 import { cache } from "../../services/cache";
-
+/*
 interface Provider {
   label: string;
   url: string;
@@ -18,7 +18,7 @@ interface Episode {
   url: string;
   isBundle: boolean;
 }
-
+*/
 const replacements = [
   {
     from: ":",
@@ -191,52 +191,6 @@ export async function getEpisodeLink(url: string) {
     html.querySelector("#player-embed a")?.getAttribute("href") || "";
 
   return link;
-}
-
-export async function getEpisode(source_hoster, episode) {
-  let sourceEpisode = false;
-  let bundleEpisodeNumber = -1;
-
-  if (source_hoster.episodes[0].isBundle) {
-    console.log("Episodes are bundled");
-    sourceEpisode = source_hoster.episodes.find((sourceEpisode) => {
-      const match = sourceEpisode.label.match(/E?(\d+)-E?(\d+)/);
-
-      const [bundleStart, bundleEnd] = match
-        ? [parseInt(match[1]), parseInt(match[2])]
-        : [0, 0];
-
-      const episodeNumber = parseInt(episode.episode);
-
-      bundleEpisodeNumber = episodeNumber - bundleStart + 1;
-
-      return bundleStart <= episodeNumber && bundleEnd >= episodeNumber;
-    });
-  } else {
-    sourceEpisode = source_hoster.episodes.find(
-      (sourceEpisode) =>
-        sourceEpisode.label.replace("Ep. ", "") == episode.episode,
-    );
-  }
-
-  if (!sourceEpisode) {
-    console.log("Episode not found");
-    return;
-  }
-
-  if (bundleEpisodeNumber === -1) {
-    const streamlink = await getEpisodeLink(sourceEpisode.url);
-
-    return streamlink;
-  }
-
-  const bundle = await getBundle(sourceEpisode.url);
-
-  const bundleEpisode = bundle![bundleEpisodeNumber - 1];
-
-  const streamlink = await getEpisodeLink(bundleEpisode.url);
-
-  return streamlink;
 }
 
 export async function getBundle(url: string) {
