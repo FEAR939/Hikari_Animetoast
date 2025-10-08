@@ -1,5 +1,6 @@
 {
   "name": "AnimeToast",
+  "type": "source",
   "version": "1.0.0",
   "main": "main.js",
   "github": "FEAR939/Hikari_Animetoast"
