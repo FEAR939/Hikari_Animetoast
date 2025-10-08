@@ -72,9 +72,9 @@ function sanitizeTitle(title) {
 export async function getProvider(title) {
   if (
     cache.get("extension.animetoast") !== null &&
-    JSON.parse(cache.get("extension.animetoast")!).anime === title.romaji
+    JSON.parse(cache.get("extension.animetoast")).anime === title.romaji
   ) {
-    return JSON.parse(cache.get("extension.animetoast")!);
+    return JSON.parse(cache.get("extension.animetoast"));
   }
 
   const sanitized = sanitizeTitle(title.romaji);
@@ -98,13 +98,13 @@ export async function getProvider(title) {
 
   if (seasonNumber) {
     search_results = search_results.filter((result) => {
-      const sanitized = sanitizeTitle(result.textContent!);
+      const sanitized = sanitizeTitle(result.textContent);
 
       return sanitized.includes(seasonNumber) && sanitized.includes(lang);
     });
   } else if (!seasonNumber) {
     search_results = search_results.filter((result) => {
-      const sanitized = sanitizeTitle(result.textContent!);
+      const sanitized = sanitizeTitle(result.textContent);
 
       return (
         !sanitized.match(/(?<!^)(?<!\d)\d{1,2}/)?.[0] &&
@@ -114,7 +114,7 @@ export async function getProvider(title) {
   }
 
   const simularities = search_results.map((result, i) => {
-    const sim = levenshtein(title.romaji, result.textContent!);
+    const sim = levenshtein(title.romaji, result.textContent);
     // console.log(`result: ${result.textContent}, similarity: ${sim}`);
 
     return { similarity: sim, index: i };
