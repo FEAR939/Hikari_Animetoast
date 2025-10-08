@@ -140,7 +140,7 @@ export async function getProvider(title) {
 
   const series_html = new DOMParser().parseFromString(series_data, "text/html");
 
-  const hosters: StreamProvider[] = Array.from(
+  const hosters = Array.from(
     series_html.querySelectorAll(".nav-tabs li"),
   )
     .filter((provider) => provider.querySelector("a"))
@@ -167,7 +167,7 @@ export async function getProvider(title) {
     icon:
       series_html
         .querySelector('head link[rel="icon"]')
-        ?.getAttribute("href") || "",
+        .getAttribute("href") || "",
     hosters,
   };
 
@@ -185,7 +185,7 @@ export async function getEpisodeLink(url) {
   const html = new DOMParser().parseFromString(data, "text/html");
 
   const link =
-    html.querySelector("#player-embed a")?.getAttribute("href") || "";
+    html.querySelector("#player-embed a").getAttribute("href") || "";
 
   return link;
 }
@@ -199,7 +199,7 @@ export async function getBundle(url) {
   let html = new DOMParser().parseFromString(data, "text/html");
 
   const link =
-    html.querySelector("#player-embed a")?.getAttribute("href") || "";
+    html.querySelector("#player-embed a").getAttribute("href") || "";
 
   response = await fetch(link);
   data = await response.text();
@@ -211,8 +211,8 @@ export async function getBundle(url) {
   let episodes = Array.from(
     html.querySelectorAll(`.tab-content .active a`),
   ).map((episode) => {
-    const label = episode?.textContent?.trim() || "";
-    const url = episode?.getAttribute("href")!;
+    const label = episode.textContent.trim() || "";
+    const url = episode.getAttribute("href")!;
     return { label, url };
   });
 
