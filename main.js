@@ -146,14 +146,14 @@ export async function getProvider(title) {
     .filter((provider) => provider.querySelector("a"))
     .map((provider) => {
       const element = provider.querySelector("a");
-      const label = element?.textContent?.trim() || "";
-      const tab = element?.getAttribute("href")!;
+      const label = element.textContent.trim() || "";
+      const tab = element.getAttribute("href");
 
       const eps = Array.from(
         series_html.querySelectorAll(`.tab-content ${tab} a`),
       ).map((episode) => ({
         label: episode?.textContent?.trim() || "",
-        url: episode?.getAttribute("href")!,
+        url: episode?.getAttribute("href"),
         isBundle: (episode?.textContent || "").includes("-"),
       }));
 
