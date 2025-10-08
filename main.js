@@ -81,7 +81,7 @@ export class Extension {
       return JSON.parse(this.cache.get("extension.animetoast"));
     }
   
-    const sanitized = sanitizeTitle(title.romaji);
+    const sanitized = this.sanitizeTitle(title.romaji);
   
     const url = `https://animetoast.cc/?s=${sanitized} Ger Dub`;
     const seasonNumber =
@@ -255,16 +255,16 @@ export class Extension {
     }
   
     if (bundleEpisodeNumber === -1) {
-      const streamlink = await getEpisodeLink(sourceEpisode.url);
+      const streamlink = await this.getEpisodeLink(sourceEpisode.url);
   
       return streamlink;
     }
   
-    const bundle = await getBundle(sourceEpisode.url);
+    const bundle = await this.getBundle(sourceEpisode.url);
   
     const bundleEpisode = bundle[bundleEpisodeNumber - 1];
   
-    const streamlink = await getEpisodeLink(bundleEpisode.url);
+    const streamlink = await this.getEpisodeLink(bundleEpisode.url);
   
     return streamlink;
   }
