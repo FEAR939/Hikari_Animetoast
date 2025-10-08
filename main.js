@@ -102,13 +102,13 @@ export class Extension {
   
     if (seasonNumber) {
       search_results = search_results.filter((result) => {
-        const sanitized = sanitizeTitle(result.textContent);
+        const sanitized = this.sanitizeTitle(result.textContent);
   
         return sanitized.includes(seasonNumber) && sanitized.includes(lang);
       });
     } else if (!seasonNumber) {
       search_results = search_results.filter((result) => {
-        const sanitized = sanitizeTitle(result.textContent);
+        const sanitized = this.sanitizeTitle(result.textContent);
   
         return (
           !sanitized.match(/(?<!^)(?<!\d)\d{1,2}/)?.[0] &&
