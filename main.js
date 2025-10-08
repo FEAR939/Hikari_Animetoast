@@ -54,7 +54,7 @@ const replacements = [
   },
 ];
 
-function sanitizeTitle(title: string): string {
+function sanitizeTitle(title) {
   let tempString = title;
   replacements.map((replacement) => {
     if (!tempString.includes("Season"))
@@ -69,10 +69,7 @@ function sanitizeTitle(title: string): string {
   return tempString.trim();
 }
 
-export async function getProvider(title: {
-  romaji: string;
-  english: string;
-}): Promise<Provider | undefined> {
+export async function getProvider(title) {
   if (
     cache.get("extension.animetoast") !== null &&
     JSON.parse(cache.get("extension.animetoast")!).anime === title.romaji
@@ -179,7 +176,7 @@ export async function getProvider(title: {
   return source;
 }
 
-export async function getEpisodeLink(url: string) {
+export async function getEpisodeLink(url) {
   const response = await fetch(url);
   const data = await response.text();
 
@@ -193,7 +190,7 @@ export async function getEpisodeLink(url: string) {
   return link;
 }
 
-export async function getBundle(url: string) {
+export async function getBundle(url) {
   let response = await fetch(url);
   let data = await response.text();
 
@@ -268,7 +265,7 @@ export async function getEpisode(source_hoster, episode) {
   return streamlink;
 }
 
-function levenshtein(a: string, b: string) {
+function levenshtein(a, b) {
   const an = a.length;
   const bn = b.length;
   if (an == 0) {
