@@ -189,7 +189,7 @@ export class Extension {
     const html = new DOMParser().parseFromString(data, "text/html");
   
     const link =
-      html.querySelector("#player-embed a").getAttribute("href") || "";
+      html.querySelector("#player-embed a").getAttribute("href") || html.querySelector("#player-embed iframe").getAttribute("src") || "";
   
     return link;
   }
